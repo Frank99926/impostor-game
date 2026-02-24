@@ -777,6 +777,19 @@
         <strong>¿Cómo jugar?</strong><br>
         El sistema elige una palabra secreta. Los impostores <em>no la saben</em>. Todos dan pistas y al final votan quién es el impostor.
       </div>
+
+      <!-- BARRA DE MÚSICA -->
+      <div id="music-bar" style="margin-top:14px; background:var(--card2); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:10px; border:1px solid var(--border);">
+        <button id="music-toggle-btn" onclick="toggleMusic()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;padding:0;line-height:1;">▶️</button>
+        <div style="flex:1;overflow:hidden;">
+          <div id="music-title" style="font-size:0.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎵 Tocá ▶️ para escuchar música</div>
+        </div>
+        <button onclick="nextSong()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0;" title="Siguiente">⏭️</button>
+        <input type="range" id="music-volume" min="0" max="100" value="60" oninput="setMusicVolume(this.value)" style="width:55px;accent-color:var(--accent4);">
+      </div>
+      <!-- iframe YouTube oculto -->
+      <iframe id="yt-iframe" width="1" height="1" frameborder="0" style="position:absolute;opacity:0;pointer-events:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
     </div>
   </div>
 
@@ -3103,9 +3116,7 @@ function playSong(index) {
   const videoId = YT_VIDEOS[index];
   const iframe = document.getElementById('yt-iframe');
   if (!iframe) return;
-  // Use YouTube embed with autoplay, no controls visible
-  const vol = Math.round(musicVolume);
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&loop=0&modestbranding=1&rel=0&enablejsapi=1&start=0`;
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&enablejsapi=1`;
   musicPlaying = true;
   updateMusicTitle();
 }
