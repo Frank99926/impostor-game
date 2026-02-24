@@ -780,15 +780,12 @@
 
       <!-- BARRA DE MÚSICA -->
       <div id="music-bar" style="margin-top:14px; background:var(--card2); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:10px; border:1px solid var(--border);">
-        <button id="music-toggle-btn" onclick="toggleMusic()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;padding:0;line-height:1;">▶️</button>
-        <div style="flex:1;overflow:hidden;">
-          <div id="music-title" style="font-size:0.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎵 Tocá ▶️ para escuchar música</div>
-        </div>
-        <button onclick="nextSong()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0;" title="Siguiente">⏭️</button>
-        <input type="range" id="music-volume" min="0" max="100" value="60" oninput="setMusicVolume(this.value)" style="width:55px;accent-color:var(--accent4);">
+        <button id="music-play-btn" onclick="toggleMusic()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;padding:0;line-height:1;flex-shrink:0;">▶️</button>
+        <div id="music-title" style="flex:1;font-size:0.8rem;color:var(--muted);">🎵 Música</div>
+        <button onclick="randomSong()" style="background:none;border:none;cursor:pointer;font-size:0.78rem;color:var(--accent4);font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid var(--accent4);white-space:nowrap;">🎲 Random</button>
+        <input type="range" id="music-volume" min="0" max="100" value="70" oninput="setMusicVolume(this.value)" style="width:65px;accent-color:var(--accent4);" title="Volumen">
       </div>
-      <!-- iframe YouTube oculto -->
-      <iframe id="yt-iframe" width="1" height="1" frameborder="0" style="position:absolute;opacity:0;pointer-events:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <iframe id="yt-iframe" width="1" height="1" frameborder="0" style="position:fixed;top:-9999px;left:-9999px;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
     </div>
   </div>
@@ -1231,8 +1228,6 @@ function stopMenuMusic() {
   // Also stop YouTube player
   const iframe = document.getElementById('yt-iframe');
   if (iframe) iframe.src = '';
-  musicPlaying = false;
-  updateMusicTitle();
   if (menuMusicTimer) { clearTimeout(menuMusicTimer); menuMusicTimer = null; }
   menuMelodyIndex = 0;
 }
@@ -1317,7 +1312,8 @@ function showScreen(id) {
   if (id !== 'home') {
     stopMenuMusic();
   } else {
-    updateMusicTitle();
+    const bar = document.getElementById('music-bar');
+    if (bar) bar.style.display = 'flex';
   }
   // Web Audio (clue ambient only)
   if (id === 'clue') {
@@ -3087,80 +3083,81 @@ function getPlayerAvatar() {
 }
 
 // ==================== MENU MUSIC ====================
-const YT_VIDEOS = ["lRrOLTHu-ew", "PyGev5cKTlQ", "7uBqNgxAuBA", "LuGAWR2eRyQ", "oYwL-FzFDKQ", "YagdayNkfho", "pk8tCJ_CvGU", "U0TXIXTzJEY", "qlaRFRA4qFU"];
-let musicPlaying = false;
-let currentVideoIndex = -1;
-let ytPlayer = null;
-let musicVolume = 40;
+const YT_VIDEOS = ["lRrOLTHu-ew","PyGev5cKTlQ","7uBqNgxAuBA","LuGAWR2eRyQ","oYwL-FzFDKQ","YagdayNkfho","pk8tCJ_CvGU","U0TXIXTzJEY","qlaRFRA4qFU"];
+let musicCurrentIndex = -1;
+let musicIsPlaying = false;
+let musicStarted = false;
 
-function initMusicPlayer() {
-  // Pick a random song index
-  currentVideoIndex = Math.floor(Math.random() * YT_VIDEOS.length);
-  updateMusicTitle();
-}
-
-function updateMusicTitle() {
-  const titleEl = document.getElementById('music-title');
-  if (titleEl) {
-    if (musicPlaying) {
-      titleEl.textContent = '🎵 Sonando — canción ' + (currentVideoIndex + 1) + ' de ' + YT_VIDEOS.length;
-    } else {
-      titleEl.textContent = '🎵 Tocá ▶️ para escuchar música — canción ' + (currentVideoIndex + 1) + ' de ' + YT_VIDEOS.length;
-    }
-  }
-  const btn = document.getElementById('music-toggle-btn');
-  if (btn) btn.textContent = musicPlaying ? '⏸️' : '▶️';
-}
-
-function playSong(index) {
-  const videoId = YT_VIDEOS[index];
+function musicLoad(index, autoplay) {
+  musicCurrentIndex = index;
   const iframe = document.getElementById('yt-iframe');
   if (!iframe) return;
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&enablejsapi=1`;
-  musicPlaying = true;
-  updateMusicTitle();
+  const vid = YT_VIDEOS[index];
+  iframe.src = '';
+  setTimeout(() => {
+    iframe.src = 'https://www.youtube.com/embed/' + vid + '?autoplay=' + (autoplay?1:0) + '&mute=0&controls=0&modestbranding=1&rel=0';
+    musicIsPlaying = autoplay;
+    musicUpdateUI();
+  }, 80);
+}
+
+function musicUpdateUI() {
+  const btn = document.getElementById('music-play-btn');
+  const title = document.getElementById('music-title');
+  if (btn) btn.textContent = musicIsPlaying ? '⏸️' : '▶️';
+  if (title) title.textContent = musicIsPlaying ? '🎵 Sonando...' : '🎵 Música';
 }
 
 function toggleMusic() {
-  if (!musicPlaying) {
-    playSong(currentVideoIndex);
-  } else {
-    // Pause by removing src
+  if (!musicStarted) {
+    musicStarted = true;
+    musicCurrentIndex = Math.floor(Math.random() * YT_VIDEOS.length);
+    musicLoad(musicCurrentIndex, true);
+    return;
+  }
+  if (musicIsPlaying) {
     const iframe = document.getElementById('yt-iframe');
     if (iframe) iframe.src = '';
-    musicPlaying = false;
-    updateMusicTitle();
+    musicIsPlaying = false;
+    musicUpdateUI();
+  } else {
+    musicLoad(musicCurrentIndex, true);
   }
 }
 
-function nextSong() {
-  currentVideoIndex = (currentVideoIndex + 1) % YT_VIDEOS.length;
-  if (musicPlaying) playSong(currentVideoIndex);
-  else updateMusicTitle();
+function randomSong() {
+  musicStarted = true;
+  let next = musicCurrentIndex;
+  while (next === musicCurrentIndex && YT_VIDEOS.length > 1) {
+    next = Math.floor(Math.random() * YT_VIDEOS.length);
+  }
+  musicLoad(next, true);
 }
 
 function setMusicVolume(val) {
-  musicVolume = parseInt(val);
-  // Volume control via postMessage to iframe (YouTube API)
   const iframe = document.getElementById('yt-iframe');
-  if (iframe && iframe.contentWindow) {
-    iframe.contentWindow.postMessage(JSON.stringify({
-      event: 'command',
-      func: 'setVolume',
-      args: [musicVolume]
-    }), '*');
-  }
+  if (!iframe || !iframe.contentWindow) return;
+  try {
+    iframe.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[parseInt(val)]}), '*');
+  } catch(e) {}
 }
 
 function stopMenuMusic() {
   const iframe = document.getElementById('yt-iframe');
   if (iframe) iframe.src = '';
-  musicPlaying = false;
+  musicIsPlaying = false;
+  const bar = document.getElementById('music-bar');
+  if (bar) bar.style.display = 'none';
 }
 
-// Init on load
-window.addEventListener('load', () => {
-  initMusicPlayer();
+// Auto-start on first click
+document.addEventListener('click', function onFirstClick(e) {
+  if (!musicStarted && state.phase === 'home') {
+    musicStarted = true;
+    musicCurrentIndex = Math.floor(Math.random() * YT_VIDEOS.length);
+    musicLoad(musicCurrentIndex, true);
+    document.removeEventListener('click', onFirstClick);
+  }
 });
 
 </script>
